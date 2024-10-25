@@ -3,267 +3,141 @@
 #include <string.h>
 #include "produtos.h"
 
+struct NoProduto {
+    struct Produto produto;
+    struct NoProduto *prox;
+};
 
-void cadastrarusuario(struct User *usuarios, int *qtd) {
-    printf("Informe o nome da empresa: \n");
-    scanf(" %[^\n]s", usuarios[*qtd].name);
+struct ListaProdutos {
+    struct NoProduto *inicio;
+};
 
-    do {
-        printf("Informe o email da empresa: \n");
-        scanf(" %[^\n]s", usuarios[*qtd].email);
-        
-        if (!validarEmail(usuarios[*qtd].email)) {
-            printf("Email inválido! Certifique-se de que contém '@' e um domínio válido.\n");
-        }
-    } while (!validarEmail(usuarios[*qtd].email));
-
-    printf("Informe a senha do usuário: \n");
-    scanf("%9s", usuarios[*qtd].pass);
-    (*qtd)++;
-    printf("Usuário cadastrado com sucesso!\n");
+void inicializarListaProdutos(struct ListaProdutos *lista) {
+    lista->inicio = NULL;
 }
 
-// Função cadastrar produto
-void cadastrarproduto() {
-    struct Produto p;
-    FILE *file = fopen("produtos.b", "ab");
-    if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
+void cadastrarproduto(struct ListaProdutos *lista) {
+    struct NoProduto *novo = (struct NoProduto*) malloc(sizeof(struct NoProduto));
+    if (!novo) {
+        printf("Erro de alocaÃ§Ã£o de memÃ³ria.\n");
         return;
     }
 
-    printf("Informe o código do produto: ");
-    scanf("%d", &p.codigo);
+    printf("Informe o cÃ³digo do produto: ");
+    scanf("%d", &novo->produto.codigo);
     printf("Informe o nome do produto: ");
-    scanf(" %[^\n]s", p.nome);
-    printf("Informe o preço do produto: R$ ");
-    scanf("%f", &p.preco);
+    scanf(" %[^\n]s", novo->produto.nome);
+    printf("Informe o preÃ§o do produto: R$ ");
+    scanf("%f", &novo->produto.preco);
     printf("Informe a quantidade em estoque: ");
-    scanf("%d", &p.quantidade);
+    scanf("%d", &novo->produto.quantidade);
+    novo->prox = NULL;
 
-    fwrite(&p, sizeof(struct Produto), 1, file);
-    fclose(file);
+    if (lista->inicio == NULL) {
+        lista->inicio = novo;
+    } else {
+        struct NoProduto *temp = lista->inicio;
+        while (temp->prox != NULL) {
+            temp = temp->prox;
+        }
+        temp->prox = novo;
+    }
+
     printf("Produto cadastrado com sucesso!\n");
 }
 
-// Função listar produtos
-void listar() {
-    struct Produto p;
-    FILE *file = fopen("produtos.b", "rb");
-    if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
+void listar(struct ListaProdutos *lista) {
+    struct NoProduto *temp = lista->inicio;
+    if (temp == NULL) {
+        printf("Nenhum produto cadastrado.\n");
         return;
     }
 
     printf("\n== Produtos Cadastrados ==\n");
-    while (fread(&p, sizeof(struct Produto), 1, file)) {
-        printf("Código: %d\n", p.codigo);
-        printf("Nome: %s\n", p.nome);
-        printf("Preço: R$ %.2f\n", p.preco);
-        printf("Quantidade em estoque: %d\n\n", p.quantidade);
+    while (temp != NULL) {
+        printf("CÃ³digo: %d\n", temp->produto.codigo);
+        printf("Nome: %s\n", temp->produto.nome);
+        printf("PreÃ§o: R$ %.2f\n", temp->produto.preco);
+        printf("Quantidade em estoque: %d\n\n", temp->produto.quantidade);
+        temp = temp->prox;
     }
-    fclose(file);
 }
 
-// Função editar produto
-void editarProduto() {
-    struct Produto p;
-    FILE *file = fopen("produtos.b", "rb");
-    if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
-        return;
-    }
-
+void editarProduto(struct ListaProdutos *lista) {
     int codigo;
-    printf("Informe o código do produto que deseja editar: ");
+    printf("Informe o cÃ³digo do produto que deseja editar: ");
     scanf("%d", &codigo);
 
-    struct Produto produtos[100];
-    int i = 0, encontrado = 0;
-    while (fread(&p, sizeof(struct Produto), 1, file)) {
-        produtos[i] = p;
-        if (p.codigo == codigo) {
-            encontrado = 1;
+    struct NoProduto *temp = lista->inicio;
+    while (temp != NULL) {
+        if (temp->produto.codigo == codigo) {
             printf("Produto encontrado! Informe os novos dados.\n");
             printf("Novo nome: ");
-            scanf(" %[^\n]s", produtos[i].nome);
-            printf("Novo preço: R$ ");
-            scanf("%f", &produtos[i].preco);
+            scanf(" %[^\n]s", temp->produto.nome);
+            printf("Novo preÃ§o: R$ ");
+            scanf("%f", &temp->produto.preco);
             printf("Nova quantidade: ");
-            scanf("%d", &produtos[i].quantidade);
+            scanf("%d", &temp->produto.quantidade);
+            printf("Produto editado com sucesso!\n");
+            return;
         }
-        i++;
-    }
-    fclose(file);
-
-    if (!encontrado) {
-        printf("Produto com código %d não encontrado.\n", codigo);
-        return;
+        temp = temp->prox;
     }
 
-    file = fopen("produtos.b", "wb");
-    if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
-        return;
-    }
-
-    for (int j = 0; j < i; j++) {
-        fwrite(&produtos[j], sizeof(struct Produto), 1, file);
-    }
-    fclose(file);
-    printf("Produto editado com sucesso!\n");
+    printf("Produto com cÃ³digo %d nÃ£o encontrado.\n", codigo);
 }
 
-//função excluir produto
-void excluirProduto() {
-    FILE *file = fopen("produtos.b", "rb");
-    if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
-        return;
-    }
-
-    struct Produto p;
-    int tam = 0;
-    while (fread(&p, sizeof(struct Produto), 1, file)) {
-        tam++;
-    }
-    fclose(file);
-
-    file = fopen("produtos.b", "rb");
-    struct Produto produtos[tam];
-    fread(produtos, sizeof(struct Produto), tam, file);
-    fclose(file);
-
-    printf("Informe o código do produto que deseja excluir:\n");
+void excluirProduto(struct ListaProdutos *lista) {
     int codigo;
+    printf("Informe o cÃ³digo do produto que deseja excluir:\n");
     scanf("%d", &codigo);
 
-    struct Produto temp[tam];
-    int j = 0;
-    for (int i = 0; i < tam; i++) {
-        if (produtos[i].codigo != codigo) {
-            temp[j] = produtos[i];
-            j++;
-        }
+    struct NoProduto *temp = lista->inicio, *anterior = NULL;
+    while (temp != NULL && temp->produto.codigo != codigo) {
+        anterior = temp;
+        temp = temp->prox;
     }
 
-    file = fopen("produtos.b", "wb");
-    fwrite(temp, sizeof(struct Produto), j, file);
-    fclose(file);
-
-    printf("Produto excluído com sucesso, se ele existia.\n");
-}
-
-//função sair do programa
-void sair() {
-    printf("Obrigado por usar o nosso sistema, a Reudis Tecnology agradece!. Até logo!\n");
-}
-
-// Função login
-int login(struct User *usuarios, int qtd) {
-    char email[50];
-    char senha[10];
-    char nomeEmpresa[30];
-    
-    printf("\n=== Login ===\n");
-    printf("Informe o nome da empresa: ");
-    scanf(" %[^\n]s", nomeEmpresa);
-    printf("Informe o email: ");
-    scanf(" %[^\n]s", email);
-    printf("Informe a senha: ");
-    scanf("%9s", senha);
-    
-    for (int i = 0; i < qtd; i++) {
-        if (strcmp(usuarios[i].name, nomeEmpresa) == 0 &&
-            strcmp(usuarios[i].email, email) == 0 &&
-            strcmp(usuarios[i].pass, senha) == 0) {
-            printf("Cadastro realizado com sucesso!\n");
-            return 1;
-        }
-    }
-    
-    printf("Login falhou! Credenciais incorretas.\n");
-    return 0;
-}
-
-// Função quicksort
-int compararProdutos(const void *a, const void *b) {
-    struct Produto *p1 = (struct Produto *)a;
-    struct Produto *p2 = (struct Produto *)b;
-    return p1->codigo - p2->codigo; 
-}
-
-//Função busca binária
-int buscaBinaria(struct Produto produtos[], int esquerda, int direita, int codigo) {
-    if (direita >= esquerda) {
-        int meio = esquerda + (direita - esquerda) / 2;
-        if (produtos[meio].codigo == codigo) {
-            return meio;
-        }
-        if (produtos[meio].codigo > codigo) {
-            return buscaBinaria(produtos, esquerda, meio - 1, codigo);
-        }
-        return buscaBinaria(produtos, meio + 1, direita, codigo);
-    }
-    return -1;
-}
-
-int compararProdutos(const void *a, const void *b); // Declaração da função
-
-//função buscar produtos
-void buscarProduto() {
-    struct Produto produtos[100]; 
-    FILE *file = fopen("produtos.b", "rb");
-    if (!file) {
-        printf("Erro ao abrir o arquivo.\n");
+    if (temp == NULL) {
+        printf("Produto com cÃ³digo %d nÃ£o encontrado.\n", codigo);
         return;
     }
 
-    int qtdProdutos = 0;
-    while (fread(&produtos[qtdProdutos], sizeof(struct Produto), 1, file)) {
-        qtdProdutos++;
-    }
-    fclose(file);
-
-    if (qtdProdutos > 0) {
-        qsort(produtos, qtdProdutos, sizeof(struct Produto), compararProdutos);
-
-        int codigo;
-        printf("Informe o código do produto que deseja buscar: ");
-        scanf("%d", &codigo);
-        int resultado = buscaBinaria(produtos, 0, qtdProdutos - 1, codigo);
-        
-        if (resultado != -1) {
-            printf("Produto encontrado: %s\n", produtos[resultado].nome);
-            printf("Preço: R$ %.2f\n", produtos[resultado].preco);
-            printf("Quantidade: %d\n", produtos[resultado].quantidade);
-        } else {
-            printf("Produto com o código %d não encontrado.\n", codigo);
-        }
+    if (anterior == NULL) {
+        lista->inicio = temp->prox;
     } else {
-        printf("Nenhum produto cadastrado.\n");
+        anterior->prox = temp->prox;
     }
+
+    free(temp);
+    printf("Produto excluÃ­do com sucesso!\n");
 }
 
+void buscarProduto(struct ListaProdutos *lista) {
+    int codigo;
+    printf("Informe o cÃ³digo do produto que deseja buscar: ");
+    scanf("%d", &codigo);
 
-int validarEmail(char *email) {
-    int atPosition = -1, dotPosition = -1;
-    int length = strlen(email);
-
-    for (int i = 0; i < length; i++) {
-        if (email[i] == '@') {
-            atPosition = i;
-        } else if (email[i] == '.') {
-            dotPosition = i;
+    struct NoProduto *temp = lista->inicio;
+    while (temp != NULL) {
+        if (temp->produto.codigo == codigo) {
+            printf("Produto encontrado: %s\n", temp->produto.nome);
+            printf("PreÃ§o: R$ %.2f\n", temp->produto.preco);
+            printf("Quantidade: %d\n", temp->produto.quantidade);
+            return;
         }
+        temp = temp->prox;
     }
 
-    if (atPosition < 1 || dotPosition < atPosition + 2 || dotPosition >= length - 1) {
-        return 0;
-    }
-
-    return 1;
+    printf("Produto com cÃ³digo %d nÃ£o encontrado.\n", codigo);
 }
-//
 
-
+void liberarListaProdutos(struct ListaProdutos *lista) {
+    struct NoProduto *temp = lista->inicio;
+    while (temp != NULL) {
+        struct NoProduto *proximo = temp->prox;
+        free(temp);
+        temp = proximo;
+    }
+    lista->inicio = NULL;
+}
