@@ -14,18 +14,27 @@ struct User {
     char pass[10];
 };
 
+struct NoProduto {
+    struct Produto dado;
+    struct NoProduto *prox;
+};
+
+struct ListaProduto {
+    struct NoProduto *inicio;
+};
+
+void inicializarListaProdutos(struct ListaProduto *lista);
+void cadastrarproduto(struct ListaProduto *lista);
+void listar(struct ListaProduto *lista);
+void editarProduto(struct ListaProduto *lista);
+void excluirProduto(struct ListaProduto *lista);
+void buscarProduto(struct ListaProduto *lista);
+void liberarListaProdutos(struct ListaProduto *lista);
+
 void menu();
 int validarEmail(char *email);
 void cadastrarusuario(struct User *usuarios, int *qtd);
-void cadastrarproduto();
-void listar();
-void editarProduto();
-void excluirProduto();
-void sair();
 int login(struct User *usuarios, int qtd);
-int compararProdutos(const void *a, const void *b);
-int buscaBinaria(struct Produto produtos[], int esquerda, int direita, int codigo);
-void buscarProduto();
+void sair();
 
 #endif // PRODUTOS_H
-
